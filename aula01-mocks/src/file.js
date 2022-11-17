@@ -1,6 +1,5 @@
 const { readFile } = require('fs/promises');
-const { join } = require('path');
-
+const User = require('./user');
 const { error } = require('./constants');
 
 const DEFAULT_OPTION = {
@@ -13,9 +12,10 @@ class File {
     const content = await File.getFileContent(filePath);
     const validation = File.isValid(content);
 
-    if(!validation.valid) throw new Error(validation.error);
+    if (!validation.valid) throw new Error(validation.error);
 
-    return content;
+    const user = File.parseCSVToJSON(content);
+    return user;
   }
 
   static async getFileContent(filePath) {
@@ -38,7 +38,7 @@ class File {
       fileWithoutHeader.length > 0 &&
       fileWithoutHeader.length <= options.maxLines
     )
-    if(!isContentLengthAccepted){
+    if (!isContentLengthAccepted) {
       return {
         error: error.FILE_LENGTH_ERROR_MESSAGE,
         valid: false
@@ -49,6 +49,22 @@ class File {
       valid: true,
     }
 
+  }
+
+  static parseCSVToJSON(csvString) {
+    const lines = csvString.split('\n');
+    //remove o primeiro item e joga na variavel
+    const firstLine = lines.shift();
+    const header = firstLine.split(',');
+    const users = lines.map(line => {
+      const columns = line.split(',');
+      let user = {}
+      for(const index in columns){
+        user[header[index]] = columns[index];
+      }
+      return new User(user);
+    })
+    return users;
   }
 }
 
